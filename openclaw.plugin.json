@@ -1,0 +1,25 @@
+{
+  "id": "freerouter",
+  "name": "FreeRouter",
+  "description": "Smart model router — auto-classify requests and route to the cheapest capable model using your own API keys",
+  "version": "1.3.0",
+  "providers": ["freerouter"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "port": { "type": "number", "default": 18800 },
+      "host": { "type": "string", "default": "127.0.0.1" },
+      "providers": { "type": "object" },
+      "tiers": { "type": "object" },
+      "agenticTiers": { "type": "object" },
+      "tierBoundaries": { "type": "object" },
+      "thinking": { "type": "object" },
+      "auth": { "type": "object" }
+    }
+  },
+  "uiHints": {
+    "port": { "label": "Proxy Port", "placeholder": "18800" },
+    "host": { "label": "Bind Address", "placeholder": "127.0.0.1" }
+  }
+}
