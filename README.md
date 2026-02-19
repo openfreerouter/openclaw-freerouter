@@ -186,7 +186,7 @@ After install, add to your `openclaw.json`:
   // 3. Plugin config
   "plugins": {
     "entries": {
-      "freerouter": {
+      "openclaw-freerouter": {
         "enabled": true,
         "config": {
           "port": 18801,
@@ -234,7 +234,7 @@ Then restart: `openclaw gateway restart`
 If port 18801 is in use, change it:
 
 ```json5
-{ "plugins": { "entries": { "freerouter": { "config": { "port": 18802 } } } } }
+{ "plugins": { "entries": { "openclaw-freerouter": { "config": { "port": 18802 } } } } }
 ```
 
 Set `"port": 0` to disable the HTTP proxy entirely.

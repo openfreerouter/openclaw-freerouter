@@ -22,7 +22,7 @@ export const id = "freerouter";
 export default function register(api: any) {
   const logger = api.logger ?? console;
   const getPluginConfig = () => {
-    const cfg = api.config?.plugins?.entries?.freerouter?.config ?? {};
+    const cfg = api.config?.plugins?.entries?.["openclaw-freerouter"]?.config ?? {};
     return cfg;
   };
 
@@ -55,7 +55,7 @@ export default function register(api: any) {
         server.on("error", (err: any) => {
           if (err.code === "EADDRINUSE") {
             logger.error(`[freerouter] Port ${port} is already in use. Run: openclaw freerouter doctor`);
-            logger.error(`[freerouter] To change port: set plugins.entries.freerouter.config.port in openclaw.json`);
+            logger.error(`[freerouter] To change port: set plugins.entries["openclaw-freerouter"].config.port in openclaw.json`);
           } else {
             logger.error(`[freerouter] Server error: ${err.message}`);
           }

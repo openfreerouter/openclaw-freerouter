@@ -16,7 +16,7 @@ import { buildPricingMap } from "./models.js";
 export function registerCli(api: any) {
   const logger = api.logger ?? console;
 
-  const getPluginConfig = () => api.config?.plugins?.entries?.freerouter?.config ?? {};
+  const getPluginConfig = () => api.config?.plugins?.entries?.["openclaw-freerouter"]?.config ?? {};
 
   api.registerCli(
     ({ program }: any) => {
@@ -162,8 +162,8 @@ export function registerCli(api: any) {
               enabled: { models: ["claude-sonnet-4-5"], budget: 4096 },
             },
           }, null, 2));
-          console.log("\n  Copy this into plugins.entries.freerouter.config in openclaw.json");
-          console.log("  Or run: openclaw config set plugins.entries.freerouter.config '{...}'");
+          console.log('\n  Copy this into plugins.entries["openclaw-freerouter"].config in openclaw.json');
+          console.log('  Or run: openclaw config set plugins.entries["openclaw-freerouter"].config \'{...}\'');
           console.log();
         });
 
@@ -335,7 +335,7 @@ export function registerCli(api: any) {
 
 Step 1: Add this to your openclaw.json under "plugins.entries":
 
-  "freerouter": {
+  "openclaw-freerouter": {
     "enabled": true,
     "config": ${JSON.stringify(pluginConfig, null, 6).split("\n").map((l, i) => i === 0 ? l : "    " + l).join("\n")}
   }
