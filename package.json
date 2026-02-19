@@ -1,0 +1,49 @@
+{
+  "name": "openclaw-freerouter",
+  "version": "2.0.0",
+  "description": "Smart LLM router plugin for OpenClaw — classify requests and route to the best model using your own API keys. 14-dimension scoring, <1ms classification, per-prompt/session model switching.",
+  "type": "module",
+  "openclaw": {
+    "extensions": ["./src/index.ts"]
+  },
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "npx tsx test/test-freerouter.mjs && npx tsx test/test-resilience.mjs && npx tsx test/test-overrides.mjs",
+    "test:classification": "npx tsx test/test-freerouter.mjs",
+    "test:resilience": "npx tsx test/test-resilience.mjs",
+    "test:overrides": "npx tsx test/test-overrides.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "openclaw",
+    "openclaw-plugin",
+    "llm-router",
+    "model-router",
+    "smart-routing",
+    "freerouter",
+    "anthropic",
+    "claude",
+    "kimi",
+    "openai"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openfreerouter/openclaw-freerouter"
+  },
+  "homepage": "https://github.com/openfreerouter/openclaw-freerouter#readme",
+  "bugs": {
+    "url": "https://github.com/openfreerouter/openclaw-freerouter/issues"
+  },
+  "author": "dusama",
+  "license": "MIT",
+  "files": [
+    "src/",
+    "openclaw.plugin.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

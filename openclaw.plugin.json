@@ -1,0 +1,109 @@
+{
+  "id": "freerouter",
+  "name": "FreeRouter",
+  "version": "2.0.0",
+  "description": "Smart LLM router — classify requests and route to the best model using your own API keys. 14-dimension weighted scoring, <1ms classification, configurable tiers.",
+  "providers": ["freerouter"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "port": {
+        "type": "number",
+        "description": "HTTP proxy port (0 = disabled, in-process only)",
+        "default": 18801
+      },
+      "host": {
+        "type": "string",
+        "description": "HTTP proxy bind address",
+        "default": "127.0.0.1"
+      },
+      "tiers": {
+        "type": "object",
+        "description": "Model assignments per classification tier",
+        "additionalProperties": false,
+        "properties": {
+          "SIMPLE": { "$ref": "#/$defs/tierConfig" },
+          "MEDIUM": { "$ref": "#/$defs/tierConfig" },
+          "COMPLEX": { "$ref": "#/$defs/tierConfig" },
+          "REASONING": { "$ref": "#/$defs/tierConfig" }
+        }
+      },
+      "thinking": {
+        "type": "object",
+        "description": "Thinking/reasoning config per tier",
+        "additionalProperties": false,
+        "properties": {
+          "adaptive": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Model patterns that support adaptive thinking (e.g. ['claude-opus-4-6'])"
+          },
+          "enabled": {
+            "type": "object",
+            "properties": {
+              "models": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Model patterns that get thinking enabled"
+              },
+              "budget": {
+                "type": "number",
+                "description": "Thinking token budget",
+                "default": 4096
+              }
+            }
+          }
+        }
+      },
+      "scoring": {
+        "type": "object",
+        "description": "Override scoring weights, boundaries, or keyword lists",
+        "additionalProperties": true
+      },
+      "defaultTier": {
+        "type": "string",
+        "enum": ["SIMPLE", "MEDIUM", "COMPLEX", "REASONING"],
+        "description": "Default tier when classification is ambiguous",
+        "default": "MEDIUM"
+      },
+      "logLevel": {
+        "type": "string",
+        "enum": ["debug", "info", "warn", "error"],
+        "default": "info"
+      }
+    },
+    "$defs": {
+      "tierConfig": {
+        "type": "object",
+        "properties": {
+          "primary": {
+            "type": "string",
+            "description": "Primary model (e.g. 'anthropic/claude-opus-4-6')"
+          },
+          "fallback": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Fallback models if primary fails"
+          }
+        },
+        "required": ["primary"]
+      }
+    }
+  },
+  "uiHints": {
+    "port": {
+      "label": "Proxy Port",
+      "placeholder": "18801 (0 to disable HTTP proxy)"
+    },
+    "tiers": {
+      "label": "Tier → Model Mapping"
+    },
+    "defaultTier": {
+      "label": "Default Tier (ambiguous requests)"
+    },
+    "logLevel": {
+      "label": "Log Level"
+    }
+  }
+}
