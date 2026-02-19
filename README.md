@@ -7,6 +7,7 @@
 - 🔥 **Wasted money** — Running Claude Opus ($15/$75 per 1M tokens) for every message, even "what's 2+2?"
 - 🤷 **No control** — Can't switch models mid-conversation without editing config files and restarting
 - 📊 **Blind routing** — Your AI shows "freerouter/auto" instead of telling you which model actually answered
+- 🧠 **No adaptive thinking** — OpenClaw's built-in thinking levels (`/think low`, `/think high`) are just prompt hints. Anthropic deprecated manual thinking for Opus 4.6 — it now requires the native `thinking: { type: "adaptive" }` API parameter, which OpenClaw doesn't send
 - 🔧 **Complex setup** — Existing routers need separate servers, Docker, complex infra
 
 ## The Solution
@@ -14,6 +15,7 @@
 FreeRouter is an OpenClaw plugin that:
 - **Classifies every request in <1ms** using a 14-dimension weighted scorer (no LLM needed for classification)
 - **Routes to the cheapest model that can handle it** — Kimi for "hello", Opus for architecture design
+- **Sends native adaptive thinking** — Automatically passes `thinking: { type: "adaptive" }` to Anthropic's API for Opus 4.6, and `thinking: { type: "enabled", budget_tokens: N }` for Sonnet. No prompt hacks — real API-level thinking control that OpenClaw doesn't support natively
 - **Reports the real model name** — You see `anthropic/claude-opus-4-6`, not `freerouter/auto`
 - **Lets you override anytime** — Just say "use opus" in plain English
 
@@ -99,6 +101,36 @@ This prevents accidental switches when you're just talking *about* a model.
 | `sonnet-4.6` | anthropic/claude-sonnet-4-6 |
 | `haiku`, `haiku-4`, `haiku-4.5` | anthropic/claude-haiku-4-5 |
 | `kimi`, `kimi-k2`, `k2.5` | kimi-coding/kimi-for-coding |
+
+## Adaptive Thinking (Native API-Level)
+
+This is a key reason FreeRouter exists.
+
+**The problem:** OpenClaw's built-in `/think low|medium|high` commands are prompt-level hints — they add text like "think harder" to your prompt. This is unreliable and doesn't use Anthropic's actual thinking API. Worse, **Anthropic deprecated manual thinking (`type: "enabled"`) for Opus 4.6** — it now only supports `type: "adaptive"`, where the model decides how much to think based on the task.
+
+**What FreeRouter does:** Sends the real `thinking` parameter directly to Anthropic's API:
+
+| Model | Thinking Mode | What's Sent |
+|---|---|---|
+| Claude Opus 4.6 | **Adaptive** (always) | `thinking: { type: "adaptive" }` |
+| Claude Sonnet 4.5 | Enabled with budget | `thinking: { type: "enabled", budget_tokens: 4096 }` |
+| Others (Kimi, Haiku) | Off | No thinking parameter |
+
+**Why this matters:**
+- Adaptive thinking lets Opus 4.6 decide how much reasoning it needs — simple questions get quick answers, complex proofs get deep thinking chains
+- You get the full benefit of Claude's extended thinking without managing budgets
+- The `X-FreeRouter-Thinking` response header tells you exactly which thinking mode was used
+
+Configure in your plugin config:
+```json5
+"thinking": {
+  "adaptive": ["claude-opus-4-6"],           // Models that use adaptive (always-on)
+  "enabled": {
+    "models": ["claude-sonnet-4-5"],          // Models that get explicit thinking
+    "budget": 4096                             // Token budget for thinking
+  }
+}
+```
 
 ## How Routing Works
 

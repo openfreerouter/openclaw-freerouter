@@ -624,11 +624,15 @@ export function createProxyServer(options: ProxyOptions): { server: Server; stat
     }
 
     // Determine thinking mode
+    // Opus 4.6 REQUIRES adaptive thinking — manual mode is deprecated by Anthropic
+    // Other models can use enabled(budget) for explicit thinking control
     const thinkingCfg = pluginConfig.thinking as any;
     const adaptivePatterns = thinkingCfg?.adaptive ?? ["claude-opus-4-6"];
     const enabledCfg = thinkingCfg?.enabled;
 
-    if (adaptivePatterns.some((p: string) => routedModel.includes(p)) && (tier === "COMPLEX" || tier === "REASONING")) {
+    if (adaptivePatterns.some((p: string) => routedModel.includes(p))) {
+      // Adaptive thinking models (e.g., Opus 4.6) — always use adaptive
+      // Anthropic deprecated manual thinking for Opus 4.6
       thinkingMode = "adaptive";
     } else if (enabledCfg?.models?.some((p: string) => routedModel.includes(p))) {
       thinkingMode = `enabled(${enabledCfg.budget ?? 4096})`;
