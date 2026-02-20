@@ -403,6 +403,17 @@ export function createProxyServer(options: ProxyOptions): { server: Server; stat
     byModel: {},
   };
 
+  function preflightHealth() {
+    const modelSet = new Set<string>(["freerouter/auto"]);
+    for (const tier of Object.values(routingConfig.tiers)) {
+      if (tier?.primary) modelSet.add(tier.primary);
+      for (const fb of tier?.fallback ?? []) {
+        modelSet.add(fb);
+      }
+    }
+    return forwarder.preflight(Array.from(modelSet));
+  }
+
   async function handleChatCompletions(req: IncomingMessage, res: ServerResponse) {
     const bodyStr = await readBody(req);
     let chatReq: any;
@@ -660,6 +671,22 @@ export function createProxyServer(options: ProxyOptions): { server: Server; stat
       }
     }
 
+    // Preflight check: ensure auth/config for every provider we might hit.
+    const preflightModels = [requestedModel, ...modelsToTry];
+    const preflight = forwarder.preflight(preflightModels);
+    if (!preflight.ok) {
+      const issue = preflight.issues[0];
+      if (!issue) {
+        sendError(res, 503, "Freerouter preflight failed", "auth_error");
+      } else {
+        const details = preflight.issues
+          .map((i) => `${i.provider}: ${i.reason}`)
+          .join("; ");
+        sendError(res, 503, `Freerouter preflight failed: ${details}`, "auth_error");
+      }
+      return;
+    }
+
     let lastError = "";
     for (const modelToTry of modelsToTry) {
       try {
@@ -712,8 +739,21 @@ export function createProxyServer(options: ProxyOptions): { server: Server; stat
   }
 
   function handleHealth(_req: IncomingMessage, res: ServerResponse) {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "ok", version: "2.0.0", uptime: process.uptime(), stats }));
+    const pf = preflightHealth();
+    const status = pf.ok ? "ok" : "degraded";
+    const payload: Record<string, unknown> = {
+      status,
+      version: "2.0.0",
+      uptime: process.uptime(),
+      stats,
+    };
+
+    if (!pf.ok) {
+      payload.issues = pf.issues;
+    }
+
+    res.writeHead(pf.ok ? 200 : 503, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(payload));
   }
 
   function handleStats(_req: IncomingMessage, res: ServerResponse) {

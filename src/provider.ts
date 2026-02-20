@@ -12,6 +12,8 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import type { ServerResponse } from "node:http";
 
+const AUTH_PROFILES_PATH = join(homedir(), ".openclaw", "agents", "main", "agent", "auth-profiles.json");
+
 // ─── Timeout Configuration ───
 const TIER_TIMEOUTS: Record<string, number> = {
   SIMPLE: 30_000,
@@ -28,6 +30,15 @@ export class TimeoutError extends Error {
     this.name = "TimeoutError";
   }
 }
+
+export type PreflightResult = {
+  ok: boolean;
+  issues: Array<{
+    provider: string;
+    reason: string;
+    model?: string;
+  }>;
+};
 
 // ─── Provider Config ───
 
@@ -58,9 +69,8 @@ type AuthProfiles = {
 };
 
 function loadAuthProfiles(): Map<string, { token?: string; apiKey?: string }> {
-  const filePath = join(homedir(), ".openclaw", "agents", "main", "agent", "auth-profiles.json");
   try {
-    const data: AuthProfiles = JSON.parse(readFileSync(filePath, "utf-8"));
+    const data: AuthProfiles = JSON.parse(readFileSync(AUTH_PROFILES_PATH, "utf-8"));
     const map = new Map<string, { token?: string; apiKey?: string }>();
     const lastGood = data.lastGood ?? {};
 
@@ -100,8 +110,9 @@ export function createForwarder(openclawConfig: any, logger: any) {
   function getProviderDef(provider: string): ProviderDef | undefined {
     // Check OpenClaw config for custom provider definitions
     const ocProviders = (openclawConfig as any)?.providers;
-    if (ocProviders?.[provider]) {
-      const p = ocProviders[provider];
+    const modelsProviders = (openclawConfig as any)?.models?.providers;
+    const p = ocProviders?.[provider] ?? modelsProviders?.[provider];
+    if (p) {
       return {
         baseUrl: p.baseUrl ?? DEFAULT_PROVIDERS[provider]?.baseUrl,
         api: p.api === "anthropic-messages" ? "anthropic" : (p.api ?? DEFAULT_PROVIDERS[provider]?.api ?? "openai"),
@@ -109,6 +120,38 @@ export function createForwarder(openclawConfig: any, logger: any) {
       };
     }
     return DEFAULT_PROVIDERS[provider];
+  }
+
+  function preflightModels(modelIds: string[]): PreflightResult {
+    const seen = new Set<string>();
+    const issues: PreflightResult["issues"] = [];
+
+    for (const modelId of modelIds) {
+      const parsed = parseModelId(modelId);
+      if (seen.has(parsed.provider)) continue;
+      seen.add(parsed.provider);
+
+      const providerDef = getProviderDef(parsed.provider);
+      if (!providerDef) {
+        issues.push({
+          provider: parsed.provider,
+          reason: `Unsupported provider: ${parsed.provider}`,
+          model: modelId,
+        });
+        continue;
+      }
+
+      const auth = getAuth(parsed.provider);
+      if (!auth?.token && !auth?.apiKey) {
+        issues.push({
+          provider: parsed.provider,
+          model: modelId,
+          reason: `No API key found for provider \"${parsed.provider}\". Auth store: ${AUTH_PROFILES_PATH}`,
+        });
+      }
+    }
+
+    return { ok: issues.length === 0, issues };
   }
 
   function getThinkingConfig(thinkingMode: string, _modelId: string): { type: string; budget_tokens?: number } | undefined {
@@ -546,6 +589,7 @@ export function createForwarder(openclawConfig: any, logger: any) {
   // ─── Main forward function ───
 
   return {
+    preflight: preflightModels,
     forward: async (chatReq: any, routedModel: string, tier: string, thinkingMode: string, res: ServerResponse, stream: boolean) => {
       const { provider, model } = parseModelId(routedModel);
       const providerDef = getProviderDef(provider);
