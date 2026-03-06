@@ -696,7 +696,15 @@ export function createProxyServer(options: ProxyOptions): { server: Server; stat
         }
 
         // KEY FIX: Forward with the REAL model name — not "freerouter/X"
-        await forwarder.forward(chatReq, modelToTry, tier, thinkingMode, res, stream);
+        // Inject model identity into messages so the agent knows which model it's running on
+        const injectedMessages = [...chatReq.messages];
+        const modelHint = `[FreeRouter] You are running on model: ${modelToTry} | Tier: ${tier} | Thinking: ${thinkingMode}`;
+        // Insert as a developer message right after system prompts (before user messages)
+        const lastSystemIdx = injectedMessages.reduce((acc: number, m: any, i: number) =>
+          (m.role === "system" || m.role === "developer") ? i : acc, -1);
+        injectedMessages.splice(lastSystemIdx + 1, 0, { role: "developer", content: modelHint });
+        const injectedReq = { ...chatReq, messages: injectedMessages };
+        await forwarder.forward(injectedReq, modelToTry, tier, thinkingMode, res, stream);
         return;
       } catch (err: any) {
         lastError = err.message ?? String(err);
