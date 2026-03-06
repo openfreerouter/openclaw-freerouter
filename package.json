@@ -1,6 +1,6 @@
 {
   "name": "openclaw-freerouter",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Smart LLM router plugin for OpenClaw — classify requests and route to the best model using your own API keys. 14-dimension scoring, <1ms classification, per-prompt/session model switching.",
   "type": "module",
   "openclaw": {
