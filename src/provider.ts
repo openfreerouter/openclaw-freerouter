@@ -495,7 +495,15 @@ export function createForwarder(openclawConfig: any, logger: any) {
       messages: req.messages,
       stream,
     };
-    if (req.max_tokens) body.max_tokens = req.max_tokens;
+    // GPT-5.x and newer OpenAI models require max_completion_tokens instead of max_tokens
+    const isNewOpenAI = provider === "openai" && /^gpt-[5-9]/.test(modelName);
+    if (req.max_tokens || req.max_completion_tokens) {
+      if (isNewOpenAI) {
+        body.max_completion_tokens = req.max_completion_tokens ?? req.max_tokens;
+      } else {
+        body.max_tokens = req.max_tokens ?? req.max_completion_tokens;
+      }
+    }
     if (req.temperature !== undefined) body.temperature = req.temperature;
     if (req.top_p !== undefined) body.top_p = req.top_p;
 
